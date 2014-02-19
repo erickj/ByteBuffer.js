@@ -13,6 +13,11 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
+// #ifdef GOOG
+goog.provide('dcodeIO.ByteBuffer');
+
+goog.require('dcodeIO.Long');
+// #endif
 
 /**
  * @license ByteBuffer.js (c) 2013 Daniel Wirtz <dcode@dcode.io>
@@ -1216,12 +1221,12 @@
                 var advance = typeof offset === 'undefined';
                 offset = typeof offset !== 'undefined' ? offset : this.offset;
                 if (!(typeof value === 'object' && value instanceof Long)) value = Long.fromNumber(value, false);
-    
+
                 var part0 = value.toInt() >>> 0,
                     part1 = value.shiftRightUnsigned(28).toInt() >>> 0,
                     part2 = value.shiftRightUnsigned(56).toInt() >>> 0,
                     size = ByteBuffer.calculateVarint64(value);
-    
+
                 this.ensureCapacity(offset+size);
                 var dst = this.view;
                 switch (size) {
@@ -1244,7 +1249,7 @@
                     return size;
                 }
             };
-    
+
             /**
              * Reads a 32bit base 128 variable-length integer as used in protobuf. Requires Long.js.
              * @param {number=} offset Offset to read from. Will use and advance {@link ByteBuffer#offset} if omitted.
@@ -1258,7 +1263,7 @@
                 offset = typeof offset !== 'undefined' ? offset : this.offset;
                 var start = offset;
                 // ref: src/google/protobuf/io/coded_stream.cc
-    
+
                 var src = this.view,
                     part0, part1 = 0, part2 = 0, b;
                 b = src.getUint8(offset++); part0  = (b & 0x7F)      ; if (b & 0x80) {
@@ -1272,7 +1277,7 @@
                 b = src.getUint8(offset++); part2  = (b & 0x7F)      ; if (b & 0x80) {
                 b = src.getUint8(offset++); part2 |= (b & 0x7F) <<  7; if (b & 0x80) {
                 throw(new Error("Data must be corrupt: Buffer overrun")); }}}}}}}}}}
-                
+
                 var value = Long.from28Bits(part0, part1, part2, false);
                 if (advance) {
                     this.offset = offset;
@@ -1284,7 +1289,7 @@
                     };
                 }
             };
-    
+
             /**
              * Writes a zigzag encoded 64bit base 128 encoded variable-length integer as used in protobuf.
              * @param {number} value Value to write
@@ -1295,7 +1300,7 @@
             ByteBuffer.prototype.writeZigZagVarint64 = function(value, offset) {
                 return this.writeVarint64(ByteBuffer.zigZagEncode64(value), offset);
             };
-    
+
             /**
              * Reads a zigzag encoded 64bit base 128 variable-length integer as used in protobuf.
              * @param {number=} offset Offset to read from. Defaults to {@link ByteBuffer#offset} which will be modified only if omitted.
@@ -1311,7 +1316,7 @@
                 }
                 return ByteBuffer.zigZagDecode64(dec);
             };
-                
+
          }
 
         /**
@@ -1374,10 +1379,10 @@
                 return 5;
             }
         };
-        
+
         // Available with Long.js only
         if (Long) {
-    
+
             /**
              * Calculates the actual number of bytes required to encode a 64bit base 128 variable-length integer.
              * @param {number|!Long} value Value to encode
@@ -1387,11 +1392,11 @@
             ByteBuffer.calculateVarint64 = function(value) {
                 // ref: src/google/protobuf/io/coded_stream.cc
                 if (!(typeof value === 'object' && value instanceof Long)) value = Long.fromNumber(value, false);
-    
+
                 var part0 = value.toInt() >>> 0,
                     part1 = value.shiftRightUnsigned(28).toInt() >>> 0,
                     part2 = value.shiftRightUnsigned(56).toInt() >>> 0;
-    
+
                 if (part2 == 0) {
                     if (part1 == 0) {
                         if (part0 < TWO_PWR_14_DBL) {
@@ -1410,7 +1415,7 @@
                     return part2 < TWO_PWR_7_DBL ? 9 : 10;
                 }
             };
-            
+
         }
 
         /**
@@ -1434,10 +1439,10 @@
             // ref: src/google/protobuf/wire_format_lite.h
             return ((n >>> 1) ^ -(n & 1)) | 0;
         };
-        
+
         // Available with Long.js only
         if (Long) {
-    
+
             /**
              * Encodes a signed 64bit integer so that it can be effectively used with varint encoding.
              * @param {number|!Long} n Signed long
@@ -1453,7 +1458,7 @@
                 }
                 return n.shiftLeft(1).xor(n.shiftRight(63)).toUnsigned();
             };
-    
+
             /**
              * Decodes a zigzag encoded signed 64bit integer.
              * @param {!Long|number} n Unsigned zigzag encoded long or JavaScript number
@@ -1470,7 +1475,7 @@
                 }
                 return n.shiftRightUnsigned(1).xor(n.and(Long.ONE).toSigned().negate()).toSigned();
             };
-            
+
         }
 
         /**
@@ -1964,7 +1969,7 @@
         };
 
         /**
-         * Reads a string with prepended number of characters, which is encoded as a 32bit base 128 variable-length 
+         * Reads a string with prepended number of characters, which is encoded as a 32bit base 128 variable-length
          *  integer.
          * @param {number=} offset Offset to read from. Will use and advance {@link ByteBuffer#offset} if omitted.
          * @returns {string|!{string: string, length: number}} The string read if offset is omitted, else the string
@@ -2280,10 +2285,10 @@
             }
             return forceCopy && !copied ? b.copy().array : b.array;
         };
-        
+
         // Available with node.js only
         if (Buffer) {
-    
+
             /**
              * Returns a node Buffer compacted to contain this ByteBuffer's actual contents. Will transparently
              *  {@link ByteBuffer#flip} the ByteBuffer if its offset is larger than its length. Will also copy all data (not
@@ -2301,12 +2306,13 @@
                 }
                 return new Buffer(new Uint8Array(this.array).subarray(offset, length));
             };
-            
+
         }
 
         return ByteBuffer;
     }
-    
+
+    // #ifndef GOOG
     // Enable module loading if available
     if (typeof module !== 'undefined' && module["exports"]) { // CommonJS
         module["exports"] = loadByteBuffer(require("long"));
@@ -2316,5 +2322,9 @@
         if (!global["dcodeIO"]) global["dcodeIO"] = {};
         global["dcodeIO"]["ByteBuffer"] = loadByteBuffer(global["dcodeIO"]["Long"]);
     }
+    // #else
+    if (!global["dcodeIO"]) global["dcodeIO"] = {};
+    global["dcodeIO"]["ByteBuffer"] = loadByteBuffer(global["dcodeIO"]["Long"]);
+    // #endif
 
 })(this);
